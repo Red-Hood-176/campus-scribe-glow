@@ -11,7 +11,7 @@ import { toast } from "sonner";
 interface StudentTableProps {
   students: Student[];
   onEdit: (student: Student) => void;
-  onDelete: (id: string) => void;
+  onDelete: (id: number) => void;
 }
 
 export const StudentTable = ({ students, onEdit, onDelete }: StudentTableProps) => {
@@ -19,17 +19,16 @@ export const StudentTable = ({ students, onEdit, onDelete }: StudentTableProps) 
 
   const filteredStudents = students.filter(
     (student) =>
-      student.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      student.lastName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      student.rollNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      student.first_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      student.last_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      student.roll_no.toLowerCase().includes(searchTerm.toLowerCase()) ||
       student.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
       student.department.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const handleDelete = (id: string, studentName: string) => {
+  const handleDelete = (id: number, studentName: string) => {
     if (confirm(`Are you sure you want to delete ${studentName}'s record?`)) {
       onDelete(id);
-      toast.success("Student record deleted successfully!");
     }
   };
 
@@ -101,10 +100,10 @@ export const StudentTable = ({ students, onEdit, onDelete }: StudentTableProps) 
                 {filteredStudents.map((student) => (
                   <TableRow key={student.id} className="hover:bg-muted/50 transition-colors">
                     <TableCell className="font-medium">
-                      {student.firstName} {student.lastName}
+                      {student.first_name} {student.last_name}
                     </TableCell>
                     <TableCell className="font-mono">
-                      {student.rollNumber}
+                      {student.roll_no}
                     </TableCell>
                     <TableCell>
                       {student.email}
@@ -130,7 +129,7 @@ export const StudentTable = ({ students, onEdit, onDelete }: StudentTableProps) 
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => handleDelete(student.id, `${student.firstName} ${student.lastName}`)}
+                          onClick={() => handleDelete(student.id, `${student.first_name} ${student.last_name}`)}
                           className="h-8 w-8 p-0 hover:bg-destructive hover:text-destructive-foreground transition-colors"
                         >
                           <Trash2 className="h-4 w-4" />

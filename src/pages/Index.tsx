@@ -3,45 +3,58 @@ import { Button } from "@/components/ui/button";
 import { StudentForm, Student } from "@/components/StudentForm";
 import { StudentTable } from "@/components/StudentTable";
 import { GraduationCap, Plus, Table as TableIcon } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 const Index = () => {
   const [students, setStudents] = useState<Student[]>([]);
   const [currentView, setCurrentView] = useState<"add" | "view">("add");
   const [editingStudent, setEditingStudent] = useState<Student | undefined>();
+  const [loading, setLoading] = useState(true);
 
-  // Load students from localStorage on component mount
+  // Load students from Supabase on component mount
   useEffect(() => {
-    const savedStudents = localStorage.getItem("students");
-    if (savedStudents) {
-      setStudents(JSON.parse(savedStudents));
-    }
+    fetchStudents();
   }, []);
 
-  // Save students to localStorage whenever students array changes
-  useEffect(() => {
-    localStorage.setItem("students", JSON.stringify(students));
-  }, [students]);
+  const fetchStudents = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('Students')
+        .select('*')
+        .order('created_at', { ascending: false });
 
-  const handleAddStudent = (studentData: Omit<Student, "id">) => {
-    const newStudent: Student = {
-      ...studentData,
-      id: Date.now().toString()
-    };
-    setStudents(prev => [...prev, newStudent]);
+      if (error) throw error;
+      setStudents(data || []);
+    } catch (error) {
+      console.error('Error fetching students:', error);
+      toast.error("Failed to load students");
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleEditStudent = (updatedStudent: Student) => {
-    setStudents(prev => 
-      prev.map(student => 
-        student.id === updatedStudent.id ? updatedStudent : student
-      )
-    );
+  const handleFormSubmit = () => {
+    fetchStudents();
     setEditingStudent(undefined);
     setCurrentView("view");
   };
 
-  const handleDeleteStudent = (id: string) => {
-    setStudents(prev => prev.filter(student => student.id !== id));
+  const handleDeleteStudent = async (id: number) => {
+    try {
+      const { error } = await supabase
+        .from('Students')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+      
+      toast.success("Student deleted successfully!");
+      fetchStudents();
+    } catch (error) {
+      console.error('Error deleting student:', error);
+      toast.error("Failed to delete student");
+    }
   };
 
   const handleStartEdit = (student: Student) => {
@@ -101,9 +114,14 @@ const Index = () => {
 
       {/* Main Content */}
       <div className="container mx-auto px-4 py-8">
-        {currentView === "add" ? (
+        {loading ? (
+          <div className="text-center py-12">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+            <p className="mt-4 text-muted-foreground">Loading students...</p>
+          </div>
+        ) : currentView === "add" ? (
           <StudentForm
-            onSubmit={editingStudent ? handleEditStudent : handleAddStudent}
+            onSubmit={handleFormSubmit}
             editingStudent={editingStudent}
             onCancel={editingStudent ? handleCancelEdit : undefined}
           />

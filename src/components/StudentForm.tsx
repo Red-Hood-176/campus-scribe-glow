@@ -5,18 +5,20 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
 export interface Student {
-  id: string;
-  firstName: string;
-  lastName: string;
-  rollNumber: string;
+  id: number;
+  first_name: string;
+  last_name: string;
+  roll_no: string;
   email: string;
   department: string;
+  created_at: string;
 }
 
 interface StudentFormProps {
-  onSubmit: (student: Omit<Student, "id"> | Student) => void;
+  onSubmit: () => void;
   editingStudent?: Student;
   onCancel?: () => void;
 }
@@ -29,9 +31,9 @@ const departments = [
 
 export const StudentForm = ({ onSubmit, editingStudent, onCancel }: StudentFormProps) => {
   const [formData, setFormData] = useState({
-    firstName: editingStudent?.firstName || "",
-    lastName: editingStudent?.lastName || "",
-    rollNumber: editingStudent?.rollNumber || "",
+    firstName: editingStudent?.first_name || "",
+    lastName: editingStudent?.last_name || "",
+    rollNumber: editingStudent?.roll_no || "",
     email: editingStudent?.email || "",
     department: editingStudent?.department || ""
   });
@@ -67,7 +69,7 @@ export const StudentForm = ({ onSubmit, editingStudent, onCancel }: StudentFormP
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!validateForm()) {
@@ -75,23 +77,51 @@ export const StudentForm = ({ onSubmit, editingStudent, onCancel }: StudentFormP
       return;
     }
 
-    if (editingStudent) {
-      onSubmit({ ...editingStudent, ...formData });
-      toast.success("Student information updated successfully!");
-    } else {
-      onSubmit(formData);
-      toast.success("Student added successfully!");
-    }
+    try {
+      if (editingStudent) {
+        const { error } = await supabase
+          .from('Students')
+          .update({
+            first_name: formData.firstName,
+            last_name: formData.lastName,
+            roll_no: formData.rollNumber,
+            email: formData.email,
+            department: formData.department
+          })
+          .eq('id', editingStudent.id);
 
-    // Reset form if not editing
-    if (!editingStudent) {
-      setFormData({
-        firstName: "",
-        lastName: "",
-        rollNumber: "",
-        email: "",
-        department: ""
-      });
+        if (error) throw error;
+        toast.success("Student information updated successfully!");
+      } else {
+        const { error } = await supabase
+          .from('Students')
+          .insert({
+            first_name: formData.firstName,
+            last_name: formData.lastName,
+            roll_no: formData.rollNumber,
+            email: formData.email,
+            department: formData.department
+          });
+
+        if (error) throw error;
+        toast.success("Student added successfully!");
+      }
+
+      onSubmit();
+
+      // Reset form if not editing
+      if (!editingStudent) {
+        setFormData({
+          firstName: "",
+          lastName: "",
+          rollNumber: "",
+          email: "",
+          department: ""
+        });
+      }
+    } catch (error) {
+      console.error('Error saving student:', error);
+      toast.error("Failed to save student information");
     }
   };
 
